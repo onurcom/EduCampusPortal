@@ -6,14 +6,9 @@ import { SearchSafe } from './components/SearchSafe';
 import { AnnouncementForm } from './components/AnnouncementForm';
 import { DomVulnerable } from './components/DomVulnerable';
 import { DomSafe } from './components/DomSafe';
-import { JwtVulnerable } from './components/JwtVulnerable';
-import { JwtSafe } from './components/JwtSafe';
-import { CsrfProtectionLab } from './components/CsrfProtectionLab';
-import { BotProtectionLab } from './components/BotProtectionLab';
 
 // Veri Doğrulama Bileşenleri
 import { AxiosZodLab } from './components/AxiosZodLab';
-import { ZodFormValidationLab } from './components/ZodFormValidationLab';
 
 export default function App() {
   const [selectedCourse, setSelectedCourse] = useState('web-security');
@@ -68,32 +63,7 @@ export default function App() {
         }
       }
 
-      if (securityWeek === 2) {
-        return {
-          courseName,
-          weekText: `${weekText} - JWT Storage Security`,
-          componentName: isSafeMode ? 'JwtSafe' : 'JwtVulnerable',
-          filePath: isSafeMode ? 'src/components/JwtSafe.jsx' : 'src/components/JwtVulnerable.jsx'
-        };
-      }
-
-      if (securityWeek === 3) {
-        return {
-          courseName,
-          weekText: `${weekText} - CSRF & SameSite Cookie`,
-          componentName: 'CsrfProtectionLab',
-          filePath: 'src/components/CsrfProtectionLab.jsx'
-        };
-      }
-
-      if (securityWeek === 4) {
-        return {
-          courseName,
-          weekText: `${weekText} - Bot Protection & Revocation`,
-          componentName: 'BotProtectionLab',
-          filePath: 'src/components/BotProtectionLab.jsx'
-        };
-      }
+     
     }
 
     if (selectedCourse === 'data-validation') {
@@ -107,22 +77,8 @@ export default function App() {
           filePath: 'src/components/AxiosZodLab.jsx'
         };
       }
-      if (validationWeek === 2) {
-        return {
-          courseName,
-          weekText: 'Hafta 2 - Interceptors & Transform / SafeParse',
-          componentName: 'AxiosZodLab (props: week=2)',
-          filePath: 'src/components/AxiosZodLab.jsx'
-        };
-      }
-      if (validationWeek === 3) {
-        return {
-          courseName,
-          weekText: 'Hafta 3 - İstemci Formları & Zod Refinements',
-          componentName: 'ZodFormValidationLab',
-          filePath: 'src/components/ZodFormValidationLab.jsx'
-        };
-      }
+     
+     
     }
 
     return { courseName: 'Bilinmiyor', weekText: '-', componentName: '-', filePath: '-' };
@@ -232,24 +188,8 @@ export default function App() {
                 >
                   Hafta 1: XSS (Reflected/Stored/DOM)
                 </button>
-                <button
-                  onClick={() => setSecurityWeek(2)}
-                  style={navButtonStyle(securityWeek === 2)}
-                >
-                  Hafta 2: JWT & HttpOnly Cookie
-                </button>
-                <button
-                  onClick={() => setSecurityWeek(3)}
-                  style={navButtonStyle(securityWeek === 3)}
-                >
-                  Hafta 3: CSRF & SameSite Cookie
-                </button>
-                <button
-                  onClick={() => setSecurityWeek(4)}
-                  style={navButtonStyle(securityWeek === 4)}
-                >
-                  Hafta 4: Bot Protection & Revocation
-                </button>
+                
+                
               </div>
             </div>
 
@@ -304,14 +244,7 @@ export default function App() {
               </div>
             )}
 
-            {/* HAFTA 2 LABS */}
-            {securityWeek === 2 && (isSafeMode ? <JwtSafe /> : <JwtVulnerable />)}
-
-            {/* HAFTA 3 LABS */}
-            {securityWeek === 3 && <CsrfProtectionLab isSafeMode={isSafeMode} />}
-
-            {/* HAFTA 4 LABS */}
-            {securityWeek === 4 && <BotProtectionLab isSafeMode={isSafeMode} />}
+        
           </div>
         )}
 
@@ -330,18 +263,7 @@ export default function App() {
                 >
                   Hafta 1: Temel Axios & Zod Şemaları
                 </button>
-                <button
-                  onClick={() => setValidationWeek(2)}
-                  style={{...navButtonStyle(validationWeek === 2)}}
-                >
-                  Hafta 2: Interceptors & Transform / SafeParse
-                </button>
-                <button
-                  onClick={() => setValidationWeek(3)}
-                  style={{...navButtonStyle(validationWeek === 3)}}
-                >
-                  Hafta 3: İstemci Formları & Zod Refinements
-                </button>
+                
               </div>
             </div>
 
@@ -350,9 +272,7 @@ export default function App() {
               <AxiosZodLab isSafeMode={isSafeMode} week={validationWeek} />
             )}
 
-            {validationWeek === 3 && (
-              <ZodFormValidationLab isSafeMode={isSafeMode} />
-            )}
+            
           </div>
         )}
 
