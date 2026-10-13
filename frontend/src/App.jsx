@@ -302,9 +302,7 @@ export default function App() {
               <AxiosZodLab isSafeMode={isSafeMode} week={validationWeek} />
             )}
 
-            {validationWeek === 3 && (
-              <ZodFormValidationLab isSafeMode={isSafeMode} />
-            )}
+           
           </div>
         )}
 
