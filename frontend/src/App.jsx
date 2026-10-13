@@ -293,12 +293,7 @@ export default function App() {
                 >
                   Hafta 2: Interceptors & Transform / SafeParse
                 </button>
-                <button
-                  onClick={() => setValidationWeek(3)}
-                  style={{...navButtonStyle(validationWeek === 3)}}
-                >
-                  Hafta 3: İstemci Formları & Zod Refinements
-                </button>
+                
               </div>
             </div>
 
