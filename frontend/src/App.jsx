@@ -9,7 +9,6 @@ import { DomSafe } from './components/DomSafe';
 import { JwtVulnerable } from './components/JwtVulnerable';
 import { JwtSafe } from './components/JwtSafe';
 import { CsrfProtectionLab } from './components/CsrfProtectionLab';
-import { BotProtectionLab } from './components/BotProtectionLab';
 
 // Veri Doğrulama Bileşenleri
 import { AxiosZodLab } from './components/AxiosZodLab';
@@ -244,12 +243,7 @@ export default function App() {
                 >
                   Hafta 3: CSRF & SameSite Cookie
                 </button>
-                <button
-                  onClick={() => setSecurityWeek(4)}
-                  style={navButtonStyle(securityWeek === 4)}
-                >
-                  Hafta 4: Bot Protection & Revocation
-                </button>
+                
               </div>
             </div>
 
@@ -310,8 +304,6 @@ export default function App() {
             {/* HAFTA 3 LABS */}
             {securityWeek === 3 && <CsrfProtectionLab isSafeMode={isSafeMode} />}
 
-            {/* HAFTA 4 LABS */}
-            {securityWeek === 4 && <BotProtectionLab isSafeMode={isSafeMode} />}
           </div>
         )}
 
