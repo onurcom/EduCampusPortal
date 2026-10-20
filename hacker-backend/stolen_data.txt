@@ -45,3 +45,5 @@
 [2026-10-14T10:45:06.076Z] IP: ::1 | Çalınan Veri: BENİM_OTURUM_VERİLERİM
 [2026-10-14T10:49:54.263Z] IP: ::1 | Çalınan Veri: ${encodeURIComponent(token)}
 [2026-10-14T10:59:12.765Z] IP: ::1 | Çalınan Veri: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NSIsInJvbGUiOiJ1c2VyIn0.vulnerable_signature_xyz
+[2026-10-14T12:07:24.684Z] IP: ::1 | Çalınan Veri: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NSIsInJvbGUiOiJ1c2VyIn0.vulnerable_signature_xyz
+[2026-10-14T12:14:08.899Z] IP: ::1 | Çalınan Veri: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NSIsInJvbGUiOiJ1c2VyIn0.vulnerable_signature_xyz
