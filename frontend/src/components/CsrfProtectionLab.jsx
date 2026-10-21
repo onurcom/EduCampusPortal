@@ -12,58 +12,40 @@ export function CsrfProtectionLab({ isSafeMode }) {
     setLogs((prev) => [{ id: Date.now(), timestamp, msg, type }, ...prev]);
   };
 
-  // EduCampus API Transfer İstek İşleyicisi
-  const handleTransferRequest = (targetRecipient, targetAmount, incomingHeaders = {}) => {
-    addLog(`📩 POST /api/v1/transfer isteği alındı (Alıcı: ${targetRecipient}, Miktar: ${targetAmount} TL)`, 'info');
-
-    if (isSafeMode) {
-      // SAFE MODE: 2 Katmanlı Doğrulama (SameSite Cookie + Anti-CSRF Token Header)
-      const tokenInHeader = incomingHeaders['X-CSRF-Token'];
-      const isSameSiteBlocked = incomingHeaders['isCrossSiteOrigin'] === true;
-
-      if (isSameSiteBlocked) {
-        addLog('🛡️ WAF / Tarayıcı Engeli: SameSite=Strict cookie bayrağı nedeniyle oturum çerezleri çapraz site isteğine eklenmedi!', 'danger');
-        addLog('🚨 HTTP 401 Unauthorized: Oturum doğrulanamadı.', 'danger');
-        return;
-      }
-
-      if (!tokenInHeader || tokenInHeader !== csrfToken) {
-        addLog(`🛡️ Anti-CSRF Token Doğrulama Başarısız! Beklenen: "${csrfToken.slice(0, 10)}...", Gelen: "${tokenInHeader || 'YOK'}"`, 'danger');
-        addLog('🚨 HTTP 403 Forbidden: Saldırgan alan adından gelen sahte istek reddedildi!', 'danger');
-        return;
-      }
-
-      // Başarılı Güvenli Transfer
-      setBalance((prev) => prev - Number(targetAmount));
-      addLog(`✅ Güvenli İşlem Başarılı! ${targetAmount} TL -> ${targetRecipient} hesabına aktarıldı. (CSRF Token Doğrulandı)`, 'success');
-
-    } else {
-      // UNSAFE MODE: Otomatik Cookie Gönderimi (CSRF Açığı)
-      setBalance((prev) => prev - Number(targetAmount));
-      addLog(`⚠️ UNSAFE İŞLEM BAŞARILI: Tarayıcı EduCampus çerezini otomatik ekledi! ${targetAmount} TL saldırganın hesabına (${targetRecipient}) aktarıldı!`, 'danger');
-    }
-  };
-
-  // Meşru Kullanıcı Form Gönderimi
+  // 1. Meşru Kullanıcı Transfer İşlemi (Sol Form)
   const handleLegitimateTransfer = (e) => {
     e.preventDefault();
     if (!recipient || !amount) return;
 
-    handleTransferRequest(recipient, amount, {
-      'X-CSRF-Token': isSafeMode ? csrfToken : undefined,
-      'isCrossSiteOrigin': false
-    });
+    addLog(`📩 POST /api/v1/transfer (Meşru İstek) alındı -> Alıcı: ${recipient}, Miktar: ${amount} TL`, 'info');
+
+    setBalance((prev) => prev - Number(amount));
+    if (isSafeMode) {
+      addLog(`✅ Meşru Transfer Başarılı! ${amount} TL -> "${recipient}" hesabına aktarıldı. (Güvenli Mod)`, 'success');
+    } else {
+      addLog(`⚠️ TRANSFER GERÇEKLEŞTİ: ${amount} TL -> "${recipient}" hesabına aktarıldı.`, 'warning');
+    }
     setAmount('');
+    setRecipient('');
   };
 
-  // Saldırganın Çapraz Siteden Gizli Form Tetiklemesi (CSRF Saldırı Simülasyonu)
+  // 2. Saldırganın Çapraz Siteden Gizli CSRF Tetiklemesi (Sağ Buton)
   const triggerCsrfAttack = () => {
-    addLog('😈 Saldırgan Web Sitesi (malicious-site.com) arka planda EduCampus API\'sine gizli iframe/form gönderdi!', 'warning');
-    
-    handleTransferRequest('Saldırgan_Hacker_IBAN_99', 500, {
-      'X-CSRF-Token': undefined, // Saldırgan kullanıcının CSRF token'ını okuyamaz (Same-Origin Policy)
-      'isCrossSiteOrigin': true  // Başka bir siteden yönlendirilen istek
-    });
+    const attackerAccount = "xxx"; // Saldırganın sabit hesabı
+    const stolenAmount = 1000;     // Çalınmak istenen sabit miktar
+
+    addLog('😈 Saldırgan Web Sitesi (malicious-site.com) arka planda gizli istek fırlattı!', 'warning');
+    addLog(`📩 POST /api/v1/transfer (Cross-Origin CSRF İsteği) alındı -> Alıcı: ${attackerAccount}, Miktar: ${stolenAmount} TL`, 'info');
+
+    if (isSafeMode) {
+      // SAFE MODE: Koruma devreye girer
+      addLog('🛡️ WAF / Tarayıcı Engeli: SameSite=Strict veya Anti-CSRF Token uyuşmazlığı yakalandı!', 'danger');
+      addLog('🚨 HTTP 403 Forbidden: Saldırgan alan adından gelen sahte istek reddedildi!', 'danger');
+    } else {
+      // UNSAFE MODE: Açık sömürülür ve bakiye düşer
+      setBalance((prev) => prev - Number(stolenAmount));
+      addLog(`⚠️ CSRF SALDIRISI BAŞARILI: Tarayıcı çerezleri otomatik ekledi! ${stolenAmount} TL saldırganın hesabına (${attackerAccount}) aktarıldı!`, 'danger');
+    }
   };
 
   return (
@@ -92,11 +74,12 @@ export function CsrfProtectionLab({ isSafeMode }) {
         {/* Meşru EduCampus Transfer Formu */}
         <div style={{ border: '1px solid #e5e7eb', padding: '12px', borderRadius: '6px', backgroundColor: '#ffffff' }}>
           <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#111827' }}>🏢 EduCampus Bakiye Transfer Formu</h4>
+          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 8px 0' }}>Kullanıcının kendi iradesiyle yaptığı normal transfer formudur.</p>
           <form onSubmit={handleLegitimateTransfer}>
             <div style={{ marginBottom: '8px' }}>
               <input
                 type="text"
-                placeholder="Alıcı Kullanıcı"
+                placeholder="Alıcı Kullanıcı (Örn: Ahmet)"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 style={inputStyle}
@@ -119,9 +102,9 @@ export function CsrfProtectionLab({ isSafeMode }) {
         <div style={{ border: '1px solid #fca5a5', padding: '12px', borderRadius: '6px', backgroundColor: '#fef2f2' }}>
           <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#991b1b' }}>😈 Sahte Hediye Sitesi (malicious-site.com)</h4>
           <p style={{ fontSize: '12px', color: '#7f1d1d', margin: '0 0 12px 0' }}>
-            Kullanıcı bu sitede "Ödülü Al" butonuna bastığında, arka planda EduCampus API'sine gizli para transfer isteği fırlatılır.
+            Kullanıcı bu sitede butona bastığında, form alanlarından bağımsız olarak 1000 TL doğrudan saldırganın hesabına (<strong>xxx</strong>) aktarılmaya çalışılır.
           </p>
-          <button onClick={triggerCsrfAttack} style={btnStyle('#dc2626')}>
+          <button type="button" onClick={triggerCsrfAttack} style={btnStyle('#dc2626')}>
             🎁 "Tebrikler! 1000 TL Ödül Kazandınız Tıklayın!" (CSRF Saldırısı)
           </button>
         </div>
