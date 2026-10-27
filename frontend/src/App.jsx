@@ -385,7 +385,7 @@ export default function App() {
       </main>
     </div>
   );
-}
+}}
 
 // Navigasyon Buton Stili
 const navButtonStyle = (isActive) => ({
