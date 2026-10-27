@@ -9,7 +9,7 @@ import { DomSafe } from './components/DomSafe';
 import { JwtVulnerable } from './components/JwtVulnerable';
 import { JwtSafe } from './components/JwtSafe';
 import { CsrfProtectionLab } from './components/CsrfProtectionLab';
-import { BotProtectionLab } from './components/SecureCommunicationLab';
+import { SecureCommunicationLab } from './components/SecureCommunicationLab';
 
 
 // Veri Doğrulama Bileşenleri
