@@ -1,5 +1,6 @@
 // src/components/DomVulnerable.jsx
 import React, { useState, useEffect } from 'react';
+import { SecurityImpactNotice } from './SecurityImpactNotice';
 
 export function DomVulnerable() {
   const [welcomeMessage, setWelcomeMessage] = useState('Hoş geldiniz! Sayfa temasını özelleştirebilirsiniz.');
@@ -33,6 +34,16 @@ export function DomVulnerable() {
         {/* Zafiyetli Nokta: Hash ile gelen veri kontrol edilmeden HTML olarak DOM'a enjekte edilir */}
         <div dangerouslySetInnerHTML={{ __html: welcomeMessage }} style={{ color: '#111827', fontWeight: 500 }} />
       </div>
+
+      <SecurityImpactNotice
+        title="DOM XSS ile ağrıdan çok veri çalındı"
+        summary="URL hash içindeki payload çalıştırıldı; tarayıcıdaki oturum belirtecini ve kişisel veriyi saldırganın betiği okudu."
+        evidence={{
+          'Etkilenen alan': 'window.location.hash',
+          'Çalınan veri': 'sessionId=8f1d...; user=ogrenci@educampus.local',
+          'Sonraki adım': 'API çağrısı ile kullanıcı profili ve sınav notları çekildi'
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SecurityImpactNotice } from './SecurityImpactNotice';
 
 export function CsrfProtectionLab({ isSafeMode }) {
   const [balance, setBalance] = useState(1000);
@@ -124,6 +125,18 @@ export function CsrfProtectionLab({ isSafeMode }) {
           ))}
         </div>
       </div>
+
+      {!isSafeMode && balance < 1000 && (
+        <SecurityImpactNotice
+          title="CSRF saldırısı başarılı: bakiye çalındı"
+          summary="Malicious-site.com üzerinden gönderilen gizli istek, tarayıcı çerezlerini kullanarak işlemi gerçekleştirdi. Hesap bakiyesi düşürüldü ve saldırgan hesabına aktarım yapıldı."
+          evidence={{
+            'Alıcı': 'xxx',
+            'Çalınan tutar': '1000 TL',
+            'Sonuç': 'İşlem, kullanıcı rızası olmadan gerçekleştirildi; oturum çerezi saldırı için kullanıldı.'
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -10,10 +10,22 @@ import { JwtVulnerable } from './components/JwtVulnerable';
 import { JwtSafe } from './components/JwtSafe';
 import { CsrfProtectionLab } from './components/CsrfProtectionLab';
 import { BotProtectionLab } from './components/BotProtectionLab';
+import { SqlInjectionLab } from './components/SqlInjectionLab';
+import { SecureCommunicationLab } from './components/SecureCommunicationLab';
+import { FileUploadSecurityLab } from './components/FileUploadSecurityLab';
+import { AuthorizationSessionLab } from './components/AuthorizationSessionLab';
+import { PasswordSecurityLab } from './components/PasswordSecurityLab';
+import { SecurityTestingLab } from './components/SecurityTestingLab';
 
 // Veri Doğrulama Bileşenleri
 import { AxiosZodLab } from './components/AxiosZodLab';
 import { ZodFormValidationLab } from './components/ZodFormValidationLab';
+import { CsvJsonXmlImportLab } from './components/CsvJsonXmlImportLab';
+import { ValidationPipelineLab } from './components/ValidationPipelineLab';
+import { DataStorageArchitectureLab } from './components/DataStorageArchitectureLab';
+import { RealtimeStreamsLab } from './components/RealtimeStreamsLab';
+import { GraphQLZodLab } from './components/GraphQLZodLab';
+import { SchemaArchitectureLab } from './components/SchemaArchitectureLab';
 
 export default function App() {
   const [selectedCourse, setSelectedCourse] = useState('web-security');
@@ -89,9 +101,63 @@ export default function App() {
       if (securityWeek === 4) {
         return {
           courseName,
+          weekText: `${weekText} - HTTP, HTTPS & TLS ile Güvenli İletişim`,
+          componentName: 'SecureCommunicationLab',
+          filePath: 'src/components/SecureCommunicationLab.jsx'
+        };
+      }
+
+      if (securityWeek === 5) {
+        return {
+          courseName,
           weekText: `${weekText} - Bot Protection & Revocation`,
           componentName: 'BotProtectionLab',
           filePath: 'src/components/BotProtectionLab.jsx'
+        };
+      }
+
+      if (securityWeek === 6) {
+        return {
+          courseName,
+          weekText: `${weekText} - Dosya Yükleme Güvenliği`,
+          componentName: 'FileUploadSecurityLab',
+          filePath: 'src/components/FileUploadSecurityLab.jsx'
+        };
+      }
+
+      if (securityWeek === 7) {
+        return {
+          courseName,
+          weekText: `${weekText} - SQL Injection & NoSQL Injection`,
+          componentName: 'SqlInjectionLab',
+          filePath: 'src/components/SqlInjectionLab.jsx'
+        };
+      }
+
+      if (securityWeek === 8) {
+        return {
+          courseName,
+          weekText: `${weekText} - Yetkilendirme, Erişim Kontrolü & Oturum Yönetimi`,
+          componentName: 'AuthorizationSessionLab',
+          filePath: 'src/components/AuthorizationSessionLab.jsx'
+        };
+      }
+
+      if (securityWeek === 9) {
+        return {
+          courseName,
+          weekText: `${weekText} - Kimlik Doğrulama Zafiyetleri & Parola Güvenliği`,
+          componentName: 'PasswordSecurityLab',
+          filePath: 'src/components/PasswordSecurityLab.jsx'
+        };
+      }
+
+      if (securityWeek === 10) {
+        return {
+          courseName,
+          weekText: `${weekText} - Güvenlik Testleri & Zafiyet Analizi`,
+          componentName: 'SecurityTestingLab',
+          filePath: 'src/components/SecurityTestingLab.jsx'
         };
       }
     }
@@ -121,6 +187,54 @@ export default function App() {
           weekText: 'Hafta 3 - İstemci Formları & Zod Refinements',
           componentName: 'ZodFormValidationLab',
           filePath: 'src/components/ZodFormValidationLab.jsx'
+        };
+      }
+      if (validationWeek === 4) {
+        return {
+          courseName,
+          weekText: 'Hafta 4 - CSV, JSON ve XML Verilerini Veritabanına Aktarma',
+          componentName: 'CsvJsonXmlImportLab',
+          filePath: 'src/components/CsvJsonXmlImportLab.jsx'
+        };
+      }
+      if (validationWeek === 5) {
+        return {
+          courseName,
+          weekText: 'Hafta 5 - Veri Geçerleme Mimarileri ve Hata Yönetimi',
+          componentName: 'ValidationPipelineLab',
+          filePath: 'src/components/ValidationPipelineLab.jsx'
+        };
+      }
+      if (validationWeek === 7) {
+        return {
+          courseName,
+          weekText: 'Hafta 7 - Veri Depolama, Veri Ambarı ve Lakehouse Mimarileri',
+          componentName: 'DataStorageArchitectureLab',
+          filePath: 'src/components/DataStorageArchitectureLab.jsx'
+        };
+      }
+      if (validationWeek === 8) {
+        return {
+          courseName,
+          weekText: 'Hafta 8 - WebSocket ve SSE ile Gerçek Zamanlı Veri Akışı',
+          componentName: 'RealtimeStreamsLab',
+          filePath: 'src/components/RealtimeStreamsLab.jsx'
+        };
+      }
+      if (validationWeek === 9) {
+        return {
+          courseName,
+          weekText: 'Hafta 9 - GraphQL Entegrasyonu ve Zod ile Yanıt Doğrulaması',
+          componentName: 'GraphQLZodLab',
+          filePath: 'src/components/GraphQLZodLab.jsx'
+        };
+      }
+      if (validationWeek === 10) {
+        return {
+          courseName,
+          weekText: 'Hafta 10 - Büyük Projelerde Şema Yönetimi, z.infer ve Final Projesi',
+          componentName: 'SchemaArchitectureLab',
+          filePath: 'src/components/SchemaArchitectureLab.jsx'
         };
       }
     }
@@ -248,7 +362,43 @@ export default function App() {
                   onClick={() => setSecurityWeek(4)}
                   style={navButtonStyle(securityWeek === 4)}
                 >
-                  Hafta 4: Bot Protection & Revocation
+                  Hafta 4: HTTP, HTTPS & TLS
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(5)}
+                  style={navButtonStyle(securityWeek === 5)}
+                >
+                  Hafta 5: Bot Protection & Revocation
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(6)}
+                  style={navButtonStyle(securityWeek === 6)}
+                >
+                  Hafta 6: Dosya Yükleme Güvenliği
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(7)}
+                  style={navButtonStyle(securityWeek === 7)}
+                >
+                  Hafta 7: SQL Injection & NoSQL Injection
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(8)}
+                  style={navButtonStyle(securityWeek === 8)}
+                >
+                  Hafta 8: Yetkilendirme & Oturum Yönetimi
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(9)}
+                  style={navButtonStyle(securityWeek === 9)}
+                >
+                  Hafta 9: Kimlik Doğrulama & Parola Güvenliği
+                </button>
+                <button
+                  onClick={() => setSecurityWeek(10)}
+                  style={navButtonStyle(securityWeek === 10)}
+                >
+                  Hafta 10: Güvenlik Testleri & Zafiyet Analizi
                 </button>
               </div>
             </div>
@@ -311,7 +461,25 @@ export default function App() {
             {securityWeek === 3 && <CsrfProtectionLab isSafeMode={isSafeMode} />}
 
             {/* HAFTA 4 LABS */}
-            {securityWeek === 4 && <BotProtectionLab isSafeMode={isSafeMode} />}
+            {securityWeek === 4 && <SecureCommunicationLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 5 LABS */}
+            {securityWeek === 5 && <BotProtectionLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 6 LABS */}
+            {securityWeek === 6 && <FileUploadSecurityLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 7 LABS */}
+            {securityWeek === 7 && <SqlInjectionLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 8 LABS */}
+            {securityWeek === 8 && <AuthorizationSessionLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 9 LABS */}
+            {securityWeek === 9 && <PasswordSecurityLab isSafeMode={isSafeMode} />}
+
+            {/* HAFTA 10 LABS */}
+            {securityWeek === 10 && <SecurityTestingLab />}
           </div>
         )}
 
@@ -342,6 +510,39 @@ export default function App() {
                 >
                   Hafta 3: İstemci Formları & Zod Refinements
                 </button>
+                <button onClick={() => setValidationWeek(4)} style={navButtonStyle(validationWeek === 4)}>
+                  Hafta 4: CSV, JSON & XML Veritabanı Aktarımı
+                </button>
+                <button
+                  onClick={() => setValidationWeek(5)}
+                  style={navButtonStyle(validationWeek === 5)}
+                >
+                  Hafta 5: Validation Pipeline & DLQ
+                </button>
+                <button
+                  onClick={() => setValidationWeek(7)}
+                  style={navButtonStyle(validationWeek === 7)}
+                >
+                  Hafta 7: Veri Depolama & Lakehouse
+                </button>
+                <button
+                  onClick={() => setValidationWeek(8)}
+                  style={navButtonStyle(validationWeek === 8)}
+                >
+                  Hafta 8: WebSocket & SSE Akışları
+                </button>
+                <button
+                  onClick={() => setValidationWeek(9)}
+                  style={navButtonStyle(validationWeek === 9)}
+                >
+                  Hafta 9: GraphQL & Zod Yanıt Doğrulama
+                </button>
+                <button
+                  onClick={() => setValidationWeek(10)}
+                  style={navButtonStyle(validationWeek === 10)}
+                >
+                  Hafta 10: Şema Yönetimi & Final Projesi
+                </button>
               </div>
             </div>
 
@@ -352,6 +553,30 @@ export default function App() {
 
             {validationWeek === 3 && (
               <ZodFormValidationLab isSafeMode={isSafeMode} />
+            )}
+
+            {validationWeek === 4 && (
+              <CsvJsonXmlImportLab />
+            )}
+
+            {validationWeek === 5 && (
+              <ValidationPipelineLab />
+            )}
+
+            {validationWeek === 7 && (
+              <DataStorageArchitectureLab />
+            )}
+
+            {validationWeek === 8 && (
+              <RealtimeStreamsLab />
+            )}
+
+            {validationWeek === 9 && (
+              <GraphQLZodLab />
+            )}
+
+            {validationWeek === 10 && (
+              <SchemaArchitectureLab />
             )}
           </div>
         )}

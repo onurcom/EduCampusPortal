@@ -1,5 +1,6 @@
 // src/components/JwtVulnerable.jsx
 import React, { useState } from 'react';
+import { SecurityImpactNotice } from './SecurityImpactNotice';
 
 export function JwtVulnerable() {
   const [token, setToken] = useState(localStorage.getItem('jwt_token') || '');
@@ -92,6 +93,18 @@ export function JwtVulnerable() {
             {stolenToken}
           </div>
         </div>
+      )}
+
+      {stolenToken && (
+        <SecurityImpactNotice
+          title="JWT çalındı, sunucu oturumu ele geçirildi"
+          summary="XSS saldırısı, kullanıcıya ait token’i okuyup saldırganın istemcisine taşıdı. Bu token ile aynı kullanıcı gibi istek yapılabilir."
+          evidence={{
+            'Çalınan veri': stolenToken,
+            'Etkilenen aksiyon': 'Admin paneli, notlar, profil bilgileri erişimi',
+            'Sonuç': 'Sunucu tarafından tanınan oturum gibi hareket ediliyor'
+          }}
+        />
       )}
     </div>
   );

@@ -1,264 +1,397 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import { SecurityImpactNotice } from './SecurityImpactNotice';
 
-export function BotProtectionLab({ isSafeMode }) {
-  // Telemetri ve Etkileşim State'leri
-  const [mouseActivityCount, setMouseActivityCount] = useState(0);
-  const [keyActivityCount, setKeyActivityCount] = useState(0);
-  const [telemetryData, setTelemetryData] = useState(null);
-  
-  // Oturum ve İletişim State'leri
-  const [sessionToken, setSessionToken] = useState(null);
-  const [sessionStatus, setSessionStatus] = useState('LOGGED_OUT'); // LOGGED_OUT, ACTIVE, REVOKED
-  const [logs, setLogs] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+const LIMIT = 5;
 
-  const heartbeatTimerRef = useRef(null);
+const secureExample = `// Kavramsal Express örneği: 5 isteği aşınca challenge gerekir.
+app.post('/api/login', async (req, res) => {
+  const rate = await loginLimiter.consume({
+    account: req.body.email,
+    ip: req.ip,
+  });
+  const risk = await riskService.evaluate({
+    account: req.body.email,
+    ip: req.ip,
+    failedAttempts: await attempts.count(req.body.email),
+  });
 
-  // --- İSTEMCİ TARAFINDAN FARE VE KLAVYE HAREKETİ TOPLAMA ---
-  useEffect(() => {
-    const handleMouseMove = () => setMouseActivityCount((prev) => prev + 1);
-    const handleKeyDown = () => setKeyActivityCount((prev) => prev + 1);
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  // --- DEDEKTÖR: BROWSER FINGERPRINT VE TELEMETRİ TOPLAYICI ---
-  const collectTelemetry = (forceBotMode = false) => {
-    // Canvas Fingerprinting Simülasyonu
-    let canvasHash = 'unknown';
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.textBaseline = 'top';
-      ctx.font = "14px 'Arial'";
-      ctx.fillText('EduCampus-Bot-Check', 2, 2);
-      canvasHash = canvas.toDataURL().slice(-16);
-    } catch (e) {
-      canvasHash = 'blocked';
-    }
-
-    const realWebDriver = !!navigator.webdriver;
-    const isPhantom = !!window.callPhantom || !!window._phantom;
-    const isHeadlessUA = /HeadlessChrome/.test(navigator.userAgent);
-    const hasLanguages = navigator.languages && navigator.languages.length > 0;
-
-    // Otomasyon script simülasyonu veya gerçek bot sinyali
-    const isBotDetected = forceBotMode || realWebDriver || isPhantom || isHeadlessUA || !hasLanguages || (mouseActivityCount === 0 && keyActivityCount === 0);
-
-    const telemetry = {
-      webdriver: forceBotMode ? true : realWebDriver,
-      mouseEvents: forceBotMode ? 0 : mouseActivityCount,
-      keyEvents: forceBotMode ? 0 : keyActivityCount,
-      canvasHash,
-      userAgent: navigator.userAgent,
-      isBotDetected
-    };
-
-    setTelemetryData(telemetry);
-    return telemetry;
-  };
-
-  const addLog = (msg, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString('tr-TR');
-    setLogs((prev) => [{ id: Date.now(), timestamp, msg, type }, ...prev]);
-  };
-
-  // --- GİRİŞ İŞLEMİ VE SUNUCU KONTROLÜ ---
-  const handleLogin = (isSimulatedBot = false) => {
-    setIsLoading(true);
-    clearHeartbeat();
-
-    const currentTelemetry = collectTelemetry(isSimulatedBot);
-
-    addLog(
-      isSimulatedBot 
-        ? '🤖 Bot Scripti Tarafından Otomatik POST /api/login İstegi Gönderildi.' 
-        : '👤 Kullanıcı Giriş Yap Butonuna Bastı (POST /api/login)', 
-      'info'
+  if (rate.count > 5 || risk.challengeRequired) {
+    const valid = await captchaProvider.verify(
+      req.body.challengeToken,
+      { remoteIp: req.ip }
     );
-
-    // Sunucu Yanıtı Simülasyonu
-    setTimeout(() => {
-      const fakeToken = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ user: 'admin', bot: currentTelemetry.isBotDetected }))}.signature`;
-      setSessionToken(fakeToken);
-      setSessionStatus('ACTIVE');
-      setIsLoading(false);
-
-      addLog('✅ Sunucu HTTP 200 OK: Kullanıcı adı/şifre doğru. Session Cookie verildi.', 'success');
-
-      // SAFEMODE: Arka planda telemetri analizini başlat ve 2 saniye sonra doğrulama yap
-      if (isSafeMode) {
-        addLog('🛡️ Safe Mode WAF: Arka plan telemetri denetimi (Post-Check) başlatıldı...', 'warning');
-        
-        heartbeatTimerRef.current = setTimeout(() => {
-          verifySessionWithServer(currentTelemetry, fakeToken);
-        }, 2000);
-      } else {
-        addLog('⚠️ Unsafe Mode: Telemetri kontrolü devre dışı. Oturum açık kalacak.', 'danger');
-      }
-    }, 800);
-  };
-
-  // --- SUNUCU TARAFINDA DİNAMİK OTURUM İPTALİ (SESSION REVOCATION) ---
-  const verifySessionWithServer = (telemetry, token) => {
-    addLog('📡 Arka Plan API İsteği: POST /api/verify-session (WAF Telemetry Analysis)', 'info');
-
-    if (telemetry.isBotDetected) {
-      setSessionStatus('REVOKED');
-      setSessionToken(null);
-      addLog('❌ SUNUCU WAF KARARI: Bot / Otomasyon Sinyali Yakalandı! (webdriver=true veya Mouse=0)', 'danger');
-      addLog('🚨 HTTP 401 Unauthorized: Session ID veritabanından SILINDI. Kullanıcı Login Sayfasına Yönlendirildi!', 'danger');
-    } else {
-      addLog('🟢 SUNUCU WAF KARARI: Telemetri Başarılı. İnsan Davranışı Doğrulandı. Session Aktif.', 'success');
+    if (!valid) {
+      return res.status(403).json({ message: 'Ek doğrulama gerekli.' });
     }
-  };
+  }
 
-  const clearHeartbeat = () => {
-    if (heartbeatTimerRef.current) {
-      clearTimeout(heartbeatTimerRef.current);
-    }
-  };
+  const user = await authenticate(req.body);
+  if (!user) {
+    return res.status(401).json({ message: 'E-posta veya parola hatalı.' });
+  }
 
-  const handleLogout = () => {
-    clearHeartbeat();
-    setSessionToken(null);
-    setSessionStatus('LOGGED_OUT');
-    addLog('ℹ️ Oturum kullanıcı tarafından kapatıldı.', 'info');
-  };
+  req.session.regenerate((err) => {
+    if (err) return res.status(500).end();
+    req.session.userId = user.id;
+    res.json({ ok: true });
+  });
+});`;
 
-  return (
-    <div>
-      <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', color: '#111827', margin: 0, fontWeight: 600 }}>
-          Hafta 4: Bot Protection, Fingerprinting & Session Revocation
-        </h2>
-        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
-          Çalışma Modu: <strong>{isSafeMode ? 'GÜVENLİ (WAF Telemetry & Revocation Aktif)' : 'GÜVENSİZ (Telemetri Yok / Bot Geçirgen)'}</strong>
-        </div>
-      </div>
+const insecureExample = `// GÜVENSİZ: oran sınırlaması ve ek kontrol yok.
+app.post('/api/login', async (req, res) => {
+  const user = await authenticate(req.body);
+  if (!user) {
+    return res.status(401).json({ message: 'Giriş başarısız.' });
+  }
 
-      {/* Aksiyon Butonları */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button 
-          onClick={() => handleLogin(false)} 
-          disabled={isLoading || sessionStatus === 'ACTIVE'}
-          style={btnStyle('#111827')}
-        >
-          1. Normal İnsan Girişi Yap
-        </button>
+  req.session.userId = user.id;
+  res.json({ ok: true });
+});`;
 
-        <button 
-          onClick={() => handleLogin(true)} 
-          disabled={isLoading || sessionStatus === 'ACTIVE'}
-          style={btnStyle('#991b1b')}
-        >
-          2. Otomasyon / Bot Script Simülasyonu Çalıştır
-        </button>
+const cardStyle = {
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  background: '#fff',
+  padding: '14px',
+};
 
-        {sessionStatus !== 'LOGGED_OUT' && (
-          <button onClick={handleLogout} style={btnStyle('#6b7280')}>
-            Oturumu Kapat
-          </button>
-        )}
-      </div>
+const inputLabelStyle = { display: 'block', marginBottom: 5, color: '#374151', fontSize: 13, fontWeight: 600 };
+const inputStyle = { display: 'block', width: '100%', boxSizing: 'border-box', padding: 9, marginBottom: 10, border: '1px solid #9ca3af', borderRadius: 5, fontSize: 14 };
 
-      {/* Canlı Telemetri Paneli */}
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px', marginBottom: '16px', backgroundColor: '#f9fafb' }}>
-        <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#111827' }}>
-          İstemci Tarafı Canlı Telemetri ve Fingerprint Göstergeleri
-        </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '12px' }}>
-          <div style={metricBoxStyle}>
-            <span>Fare Hareket Sayısı:</span> <strong>{mouseActivityCount}</strong>
-          </div>
-          <div style={metricBoxStyle}>
-            <span>Klavye Tuş Sayısı:</span> <strong>{keyActivityCount}</strong>
-          </div>
-          <div style={metricBoxStyle}>
-            <span>navigator.webdriver:</span>{' '}
-            <strong style={{ color: navigator.webdriver ? '#991b1b' : '#065f46' }}>
-              {String(navigator.webdriver)}
-            </strong>
-          </div>
-        </div>
-      </div>
+const buttonStyle = (background, disabled = false) => ({
+  border: 0,
+  borderRadius: '6px',
+  padding: '9px 12px',
+  color: '#fff',
+  background,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.55 : 1,
+  fontWeight: 600,
+});
 
-      {/* Oturum Durumu Bildirim Kutusu */}
-      <div style={{ marginBottom: '16px' }}>
-        {sessionStatus === 'ACTIVE' && (
-          <div style={statusBanner('#d1fae5', '#065f46', '#047857')}>
-            🟢 OTURUM AKTİF: Kullanıcı Paneline Erişilebilir (Token: {sessionToken?.slice(0, 25)}...)
-          </div>
-        )}
-        {sessionStatus === 'REVOKED' && (
-          <div style={statusBanner('#fee2e2', '#991b1b', '#7f1d1d')}>
-            🚫 OTURUM İPTAL EDİLDİ (REVOKED): Giriş yapılmasına rağmen WAF arka planda bot aktivitesi tespit etti ve session ID'yi sildi. Login sayfasına yönlendirildiniz!
-          </div>
-        )}
-        {sessionStatus === 'LOGGED_OUT' && (
-          <div style={statusBanner('#f3f4f6', '#374151', '#4b5563')}>
-            ⚪ OTURUM KAPALI: Lütfen test etmek için yukarıdaki giriş senaryolarından birini seçin.
-          </div>
-        )}
-      </div>
-
-      {/* Sunucu & WAF Denetim Log Akışı */}
-      <div style={{ border: '1px solid #111827', borderRadius: '6px', backgroundColor: '#1e293b', padding: '12px', color: '#f8fafc', fontFamily: 'monospace', fontSize: '12px' }}>
-        <h4 style={{ margin: '0 0 8px 0', color: '#94a3b8', fontSize: '12px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}>
-          WAF & Server Audit Log Stream
-        </h4>
-        <div style={{ maxHeight: '160px', overflowY: 'auto' }}>
-          {logs.length === 0 && <span style={{ color: '#64748b' }}>Henüz bir işlem yapılmadı...</span>}
-          {logs.map((log) => (
-            <div key={log.id} style={{ marginBottom: '4px', color: logColor(log.type) }}>
-              [{log.timestamp}] {log.msg}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function statusLabel(status) {
+  return {
+    idle: 'Hazır',
+    active: 'Oturum açık',
+    challenge: 'Ek doğrulama bekleniyor',
+    revoked: 'Oturum iptal edildi',
+  }[status];
 }
 
-// Yardımcı Stil Metotları
-const btnStyle = (bg) => ({
-  padding: '6px 12px',
-  fontSize: '12px',
-  backgroundColor: bg,
-  color: '#fff',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer'
-});
+export function BotProtectionLab({ isSafeMode = true }) {
+  const [username, setUsername] = useState('ogrenci');
+  const [password, setPassword] = useState('123456');
+  const [requestCount, setRequestCount] = useState(0);
+  const [status, setStatus] = useState('idle');
+  const [challengeVerified, setChallengeVerified] = useState(false);
+  const [botChallengeVerified, setBotChallengeVerified] = useState(false);
+  const [challengeReason, setChallengeReason] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  const [compromisedData, setCompromisedData] = useState(null);
+  const [logs, setLogs] = useState([
+    { message: 'Laboratuvar hazır. Bütün senaryolar bu tarayıcıda simüle edilir.', type: 'info' },
+  ]);
 
-const metricBoxStyle = {
-  backgroundColor: '#fff',
-  padding: '8px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '4px'
-};
+  const addLog = (message, type = 'info') => {
+    setLogs((previous) => [
+      { message, type, id: `${Date.now()}-${Math.random()}` },
+      ...previous,
+    ].slice(0, 8));
+  };
 
-const statusBanner = (bg, color, borderColor) => ({
-  backgroundColor: bg,
-  color: color,
-  border: `1px solid ${borderColor}`,
-  padding: '10px 12px',
-  borderRadius: '4px',
-  fontSize: '13px',
-  fontWeight: '500'
-});
+  const issueDemoSession = (reason) => {
+    const id = `demo-session-${Date.now().toString(36)}`;
+    setSessionId(id);
+    setStatus('active');
+    setChallengeVerified(false);
+    setBotChallengeVerified(false);
+    setChallengeReason(null);
+    if (!isSafeMode) {
+      setCompromisedData({
+        'Oturum kimliği': id,
+        'Çalınan veri': `user=${username}; password=${password}; session=${id}`,
+        'Açık mesaj': 'Bot koruması kapalı olduğu için otomasyon girişini başarıyla simüle etti ve oturum bilgisi elde edildi.'
+      });
+    } else {
+      setCompromisedData(null);
+    }
+    addLog(`${reason} Oturum açıldı: ${id}. Bu gerçek bir kimlik bilgisi veya sunucu oturumu değildir.`, 'success');
+  };
 
-const logColor = (type) => {
-  switch (type) {
-    case 'success': return '#4ade80';
-    case 'danger': return '#f87171';
-    case 'warning': return '#fbbf24';
-    default: return '#38bdf8';
-  }
-};
+  const handleManualLogin = () => {
+    if (status === 'active') return;
+    if (isSafeMode && status === 'challenge') return;
+
+    const nextCount = requestCount + 1;
+    setRequestCount(nextCount);
+
+    if (isSafeMode && nextCount > LIMIT && !challengeVerified) {
+      setStatus('challenge');
+      setChallengeReason('rate-limit');
+      addLog(`İstek sayacı ${LIMIT} sınırını geçti (${nextCount}). Giriş devam etmeden önce CAPTCHA doğrulaması isteniyor.`, 'warning');
+      return;
+    }
+
+    if (username !== 'ogrenci' || password !== '123456') {
+      addLog('Kullanıcı adı veya şifre hatalı. Demo için ogrenci / 123456 bilgilerini kullanın.', 'danger');
+      return;
+    }
+
+    issueDemoSession('Manuel giriş başarılı:');
+  };
+
+  const handleBotLogin = () => {
+    if (status === 'active') return;
+
+    if (isSafeMode && !botChallengeVerified) {
+      setStatus('challenge');
+      setChallengeReason('bot');
+      addLog('Bot algılandı. Giriş yapmanız için CAPTCHA çözmeniz gerekiyor.', 'warning');
+      return;
+    }
+
+    if (username !== 'ogrenci' || password !== '123456') {
+      addLog('Kullanıcı adı veya şifre hatalı. Demo için ogrenci / 123456 bilgilerini kullanın.', 'danger');
+      return;
+    }
+
+    setRequestCount((count) => count + 1);
+    issueDemoSession(isSafeMode ? 'CAPTCHA sonrası bot giriş simülasyonu:' : 'Güvensiz modda bot girişi başarılı:');
+  };
+
+  const simulateBurst = () => {
+    if (status === 'active') return;
+    const nextCount = requestCount + 6;
+    setRequestCount(nextCount);
+
+    if (isSafeMode) {
+      setStatus('challenge');
+      setChallengeReason('rate-limit');
+      addLog(`Altı hızlı istek simüle edildi (${nextCount} toplam). Sayaç ${LIMIT} sınırını geçti; giriş devam etmeden önce CAPTCHA doğrulaması isteniyor.`, 'warning');
+      return;
+    }
+
+    addLog('Güvensiz modda altı hızlı istek de kabul edildi. Hız sınırı olmadığında kaynak tüketimi ve parola tahmini riski artar.', 'danger');
+    issueDemoSession('Güvensiz simülasyon:');
+  };
+
+  const verifyChallenge = (passed) => {
+    if (!passed) {
+      setStatus('challenge');
+      setChallengeVerified(false);
+      setChallengeReason(challengeReason);
+      addLog('Ek doğrulama başarısız. Oturum oluşturulmadı; kullanıcıya erişilebilir alternatif sunulmalıdır.', 'danger');
+      return;
+    }
+
+    if (challengeReason === 'bot') {
+      setBotChallengeVerified(true);
+      setChallengeReason(null);
+      setStatus('idle');
+      addLog('CAPTCHA çözüldü. Botla giriş düğmesine yeniden basarak devam edin.', 'success');
+      return;
+    }
+
+    if (challengeReason === 'rate-limit') {
+      setChallengeVerified(true);
+      setChallengeReason(null);
+      setStatus('idle');
+      addLog('CAPTCHA çözüldü. Giriş bilgilerini yeniden göndererek devam edin.', 'success');
+      return;
+    }
+
+    setChallengeVerified(true);
+    setChallengeReason(null);
+    setStatus('idle');
+    addLog('Eğitim amaçlı challenge sonucu doğrulandı. Şimdi normal giriş adımını tekrar deneyin.', 'success');
+  };
+
+  const revokeSession = () => {
+    if (!sessionId) return;
+    setSessionId(null);
+    setStatus('revoked');
+    addLog('Risk politikası oturumu iptal etti. Gerçek sistemde sunucu oturum kaydını geçersiz kılmalı ve cookie temizlenmelidir.', 'warning');
+  };
+
+  const resetLab = () => {
+    setRequestCount(0);
+    setChallengeVerified(false);
+    setBotChallengeVerified(false);
+    setChallengeReason(null);
+    setSessionId(null);
+    setCompromisedData(null);
+    setStatus('idle');
+    setLogs([{ message: 'Simülasyon sıfırlandı; yeni bir test penceresi başladı.', type: 'info' }]);
+  };
+
+  const requestPercent = Math.min((requestCount / LIMIT) * 100, 100);
+  const currentCode = isSafeMode ? secureExample : insecureExample;
+
+  return (
+    <section style={{ color: '#111827', fontFamily: 'inherit' }}>
+      <header style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 19, margin: 0, fontWeight: 700 }}>
+          Hafta 5: Bot Koruması — sinyal, risk, hız sınırı ve oturum
+        </h2>
+        <p style={{ color: '#4b5563', fontSize: 14, lineHeight: 1.55, margin: '8px 0 0' }}>
+          Amaç her otomasyonu “yakalamak” değil; kötüye kullanım maliyetini artırırken gerçek kullanıcıları
+          gereksiz yere engellememektir. Aşağıdaki bütün işlemler yerel ve sentetiktir.
+        </p>
+        <div style={{
+          display: 'inline-block',
+          marginTop: 8,
+          padding: '5px 9px',
+          borderRadius: 5,
+          background: isSafeMode ? '#dcfce7' : '#fee2e2',
+          color: isSafeMode ? '#166534' : '#991b1b',
+          fontWeight: 700,
+          fontSize: 12,
+        }}>
+          {isSafeMode ? 'GÜVENLİ ÖRNEK: hız sınırı ve risk tabanlı challenge' : 'GÜVENSİZ ÖRNEK: korumalar devre dışı'}
+        </div>
+      </header>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(260px, 0.8fr)', gap: 14 }}>
+        <div style={cardStyle}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Giriş bilgileri</h3>
+          <p style={{ margin: '0 0 12px', padding: 9, borderRadius: 5, background: '#eff6ff', color: '#1e3a8a', fontSize: 13 }}>
+            Deneme bilgileri: <strong>Kullanıcı adı: ogrenci</strong> · <strong>Şifre: 123456</strong>
+          </p>
+          <label htmlFor="bot-login-username" style={inputLabelStyle}>Kullanıcı adı</label>
+          <input
+            id="bot-login-username"
+            type="text"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            style={inputStyle}
+          />
+          <label htmlFor="bot-login-password" style={inputLabelStyle}>Şifre</label>
+          <input
+            id="bot-login-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            style={{ ...inputStyle, marginBottom: 12 }}
+          />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <button type="button" onClick={handleManualLogin} disabled={status === 'active'} style={buttonStyle('#166534', status === 'active')}>
+              Manuel giriş
+            </button>
+            <button type="button" onClick={handleBotLogin} disabled={status === 'active'} style={buttonStyle('#7c3aed', status === 'active')}>
+              Botla giriş
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            <button type="button" onClick={simulateBurst} disabled={status === 'active'} style={buttonStyle('#991b1b', status === 'active')}>
+              6 hızlı istek simüle et
+            </button>
+          </div>
+
+          {status === 'challenge' && isSafeMode && (
+            <div role="group" aria-label="Ek doğrulama simülasyonu" style={{ marginTop: 14, padding: 12, border: '1px solid #f59e0b', borderRadius: 6, background: '#fffbeb' }}>
+              <strong>{challengeReason === 'bot' ? 'Bot algılandı. Giriş yapmanız için CAPTCHA çözmeniz gerekiyor.' : 'CAPTCHA doğrulaması gerekli'}</strong>
+              <p style={{ fontSize: 13, margin: '6px 0 10px', color: '#4b5563' }}>
+                Gerçek CAPTCHA yerine, öğretim simülasyonunda doğrulama sonucunu seçin.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button type="button" onClick={() => verifyChallenge(true)} style={buttonStyle('#166534')}>CAPTCHA'yı çöz (simülasyon)</button>
+                <button type="button" onClick={() => verifyChallenge(false)} style={buttonStyle('#991b1b')}>CAPTCHA başarısız</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13 }}>
+              <span><strong>Durum:</strong> {statusLabel(status)}</span>
+              <span><strong>İstek sayacı:</strong> {requestCount} / {LIMIT}</span>
+            </div>
+            <div role="progressbar" aria-label="Simüle edilen istek sayısı" aria-valuenow={Math.min(requestCount, LIMIT)} aria-valuemin="0" aria-valuemax={LIMIT} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginTop: 8 }}>
+              <div style={{ width: `${requestPercent}%`, height: '100%', borderRadius: 4, background: requestCount >= LIMIT ? '#dc2626' : '#2563eb', transition: 'width 150ms ease' }} />
+            </div>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '6px 0 0' }}>
+              {LIMIT} istek aşıldığında güvenli mod girişten önce CAPTCHA ister. Gerçek sayaç ve zaman penceresi sunucuda tutulur.
+            </p>
+            {sessionId && (
+              <p style={{ fontSize: 13, color: '#166534', overflowWrap: 'anywhere' }}>
+                <strong>Örnek oturum:</strong> {sessionId}
+              </p>
+            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {status === 'active' && <button type="button" onClick={revokeSession} style={buttonStyle('#7f1d1d')}>Risk algıla ve oturumu iptal et</button>}
+              <button type="button" onClick={resetLab} style={buttonStyle('#4b5563')}>Laboratuvarı sıfırla</button>
+            </div>
+          </div>
+        </div>
+
+        <aside style={cardStyle}>
+          {!isSafeMode && compromisedData && (
+            <SecurityImpactNotice
+              title="Bot koruması kapalı: oturum bilgisi ve giriş verisi çalındı"
+              summary="Güvensiz modda otomasyon girişinin hiç engellenmediği için saldırgan, kullanıcı adı ve şifreye yakın veriyi elde etti."
+              evidence={compromisedData}
+            />
+          )}
+          {isSafeMode && challengeReason === 'bot' ? (
+            <div role="alert" style={{ padding: 11, border: '1px solid #fca5a5', borderRadius: 6, background: '#fef2f2', color: '#991b1b', fontSize: 13, lineHeight: 1.5 }}>
+              <h3 style={{ margin: '0 0 7px', fontSize: 16 }}>Bot algılandı</h3>
+              <p style={{ margin: 0 }}>
+                Bu demoda <strong>Botla giriş</strong> düğmesi otomatik isteği temsil ettiği için bot olarak işaretlenir.
+                Gerçek sistemler kısa sürede çok sayıda istek gelmesi, tuşların insan hızından çok daha hızlı gönderilmesi
+                veya fare hareketlerinin olağandışı olması gibi sinyallere bakabilir. Tek bir sinyal bot olduğunu kanıtlamaz;
+                sinyaller birlikte değerlendirilir. Güvenli mod CAPTCHA ister.
+              </p>
+            </div>
+          ) : isSafeMode && challengeReason === 'rate-limit' ? (
+            <div role="alert" style={{ padding: 11, border: '1px solid #fcd34d', borderRadius: 6, background: '#fffbeb', color: '#92400e', fontSize: 13, lineHeight: 1.5 }}>
+              <h3 style={{ margin: '0 0 7px', fontSize: 16 }}>CAPTCHA gerekiyor</h3>
+              <p style={{ margin: 0 }}>
+                Kısa sürede çok sayıda istek algılandı. Devam etmek için CAPTCHA doğrulaması gereklidir.
+              </p>
+            </div>
+          ) : (
+            <>
+              <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Bot koruması hakkında</h3>
+              <p style={{ margin: '0 0 10px', color: '#374151', fontSize: 13, lineHeight: 1.5 }}>
+                Botla giriş düğmesi otomatik bir isteği temsil eder. Güvenli mod bu isteği CAPTCHA’ya yönlendirir; güvensiz mod ise ek kontrol yapmadan kabul eder.
+              </p>
+              <div style={{ padding: 10, borderRadius: 5, background: '#eff6ff', color: '#1e3a8a', fontSize: 13, lineHeight: 1.5 }}>
+                Gerçek sistemlerde istek sıklığı ve sunucu tarafındaki risk sinyalleri kontrol edilir. Bu laboratuvar yalnızca yerel bir simülasyondur.
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: 14 }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Sunucu tarafı örnek akış</h3>
+        <p style={{ color: '#4b5563', fontSize: 13, lineHeight: 1.5, margin: '0 0 10px' }}>
+          {isSafeMode
+            ? 'Güvenli örnekte hız sınırı, risk değerlendirmesi ve challenge doğrulaması sunucu tarafındadır. Üretimde CAPTCHA sağlayıcısının gizli anahtarı sadece sunucuda saklanır.'
+            : 'Güvensiz örnekte istek doğrudan kimlik doğrulamaya gider; bu nedenle otomatik tekrarları sınırlayan bir katman yoktur.'}
+        </p>
+        <pre style={{ margin: 0, padding: 12, overflowX: 'auto', borderRadius: 6, background: '#111827', color: '#e5e7eb', fontSize: 12, lineHeight: 1.55 }}>
+          <code>{currentCode}</code>
+        </pre>
+        <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 0 }}>
+          Kod kavramsaldır; üretime almadan önce proxy/IP yapılandırması, ortak sayaç deposu, erişilebilir alternatifler,
+          gizlilik ve hesap kilitleme kaynaklı hizmet engelleme riskleri değerlendirilmelidir.
+        </p>
+      </div>
+
+      <div aria-live="polite" style={{ ...cardStyle, marginTop: 14 }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Simülasyon günlüğü</h3>
+        <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.7 }}>
+          {logs.map((entry) => (
+            <li key={entry.id || entry.message} style={{
+              color: entry.type === 'danger' ? '#991b1b' : entry.type === 'success' ? '#166534' : entry.type === 'warning' ? '#92400e' : '#374151',
+            }}>
+              {entry.message}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+    </section>
+  );
+}

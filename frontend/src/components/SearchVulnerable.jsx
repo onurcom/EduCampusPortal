@@ -1,13 +1,20 @@
 // src/components/SearchVulnerable.jsx
 import React, { useState } from 'react';
+import { SecurityImpactNotice } from './SecurityImpactNotice';
 
 export function SearchVulnerable() {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [stolenData, setStolenData] = useState(null);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setSubmittedQuery(query);
+    setStolenData({
+      'Kullanıcı': 'ogrenci@educampus.local',
+      'Çalınan cookie': 'session_id=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
+      'Etkilenen alan': 'Sorgu sonucu çıktısı, kullanıcı oturumu ve test verisi'
+    });
   };
 
   return (
@@ -27,9 +34,18 @@ export function SearchVulnerable() {
       </form>
 
       {submittedQuery && (
-        <div style={{ padding: '10px', border: '1px solid #e5e7eb', borderRadius: '4px', fontSize: '13px' }}>
-          Sonuçlar gösteriliyor: <span dangerouslySetInnerHTML={{ __html: submittedQuery }} />
-        </div>
+        <>
+          <div style={{ padding: '10px', border: '1px solid #e5e7eb', borderRadius: '4px', fontSize: '13px' }}>
+            Sonuçlar gösteriliyor: <span dangerouslySetInnerHTML={{ __html: submittedQuery }} />
+          </div>
+          {stolenData && (
+            <SecurityImpactNotice
+              title="Reflected XSS ile veri sızdırıldı"
+              summary="Kullanıcı arama alanı içindeki payload, DOM’a eklenince saldırganın scripti çalıştı. Bu sahte örnekte oturum bilgisi ve kişisel arama verisi çalındı."
+              evidence={stolenData}
+            />
+          )}
+        </>
       )}
     </div>
   );
