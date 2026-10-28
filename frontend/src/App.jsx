@@ -98,7 +98,7 @@ export default function App() {
         };
       }
 
-     
+    }
 
     if (selectedCourse === 'data-validation') {
       const courseName = 'Veri Doğrulama ve Geçerleme';
@@ -385,7 +385,7 @@ export default function App() {
       </main>
     </div>
   );
-}}
+}
 
 // Navigasyon Buton Stili
 const navButtonStyle = (isActive) => ({
